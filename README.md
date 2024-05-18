@@ -5,7 +5,7 @@ Prototype for ethereum wallet using:
 * `gin`
 * `mongo-db`
 
-#### Route create user
+### Route create user
 
 * Method POST
 * PATH `localhost:8080/createUser`
