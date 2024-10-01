@@ -3,20 +3,19 @@ package ethereum
 import (
 	"crypto/ecdsa"
 	"log"
-	"fmt"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/sha3"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/tyler-smith/go-bip39"
+	"golang.org/x/crypto/sha3"
 
 	models "wallet/pkg/models"
 )
 
-func generateAddress () (string, error){
-	privateKey, err	:= crypto.GenerateKey()
+func generateAddress() (models.WalletKey, error) {
+	privateKey, err := crypto.GenerateKey()
 	if err != nil {
-		Println("Error generating private key: %v", err)
+		return models.WalletKey{}, err
 	}
 
 	privateKeyBytes := crypto.FromECDSA(privateKey)
@@ -25,12 +24,28 @@ func generateAddress () (string, error){
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
 		log.Fatal("Error casting public key to ECDSA")
-		return "", err
+		return models.WalletKey{}, err
 	}
 
 	publicKeyBytes := crypto.FromECDSAPub(publicKeyECDSA)
 	address := crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
 
-	hash := sha3.NewKeccak256()
+	hash := sha3.NewLegacyKeccak256()
 	hash.Write(publicKeyBytes[1:])
+
+	// Generate mnemonic
+	entropy, err := bip39.NewEntropy(128)
+	if err != nil {
+		return models.WalletKey{}, err
+	}
+	mnemonic, err := bip39.NewMnemonic(entropy)
+	if err != nil {
+		return models.WalletKey{}, err
+	}
+
+	return models.WalletKey{
+		PublicKey:  address,
+		PrivateKey: hexutil.Encode(privateKeyBytes)[2:],
+		Mnemonic:   mnemonic,
+	}, nil
 }
